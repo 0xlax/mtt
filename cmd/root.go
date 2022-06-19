@@ -5,47 +5,219 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
-
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "mtt",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "CLI tool to Initiate and Manage Transactions",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+var txCmd = &cobra.Command{
+	Use:   "tx",
+	Short: "generate a new unsigned tx",
+	// Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
+
+var pushCmd = &cobra.Command{
+	Use:   "push <unsigned tx file> <chain name> <key name>",
+	Short: "push the given unsigned tx with associated signing metadata",
+	Long:  "if a tx already exists for this chain and key, it will start using prefixes",
+	Args:  cobra.ExactArgs(3),
+	RunE:  cmdPush,
+}
+
+var authzCmd = &cobra.Command{
+	Use:   "authz",
+	Short: "generate an unsigned authz tx grant",
+	Args:  cobra.NoArgs, // print long help from custom verification
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
+}
+
+var authzGrantCmd = &cobra.Command{
+	Use:   "grant <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote> <expiration days>",
+	Short: "generate an authz grant tx and push it",
+	Long: "\nThis commands allows you to generate an unsigned tx to grant authorization " +
+		"to a 'grantee' address that will be able to execute transactions as specified in " +
+		"the '<message-type>' parameter. The grant authz is the first step in order to " +
+		"authorize, after the grant tx is signed, then an 'authz exec' command will need to " +
+		"be signed and executed in order to enable the authorization on chain.\n" +
+		"Example: Grant withdraw authz permissions to a grantee (cosmos1add... address) for 30 days\n" +
+		"multisig tx grant cosmoshub my-key cosmos1adggsadfsadfffredffdssdf withdraw 30",
+	Args: func(cmd *cobra.Command, args []string) error {
+		numArgs := 5 // Update the number of arguments if command use changes
+		if len(args) != numArgs {
+			cmd.Help()
+			return fmt.Errorf("\n accepts %d arg(s), received %d", numArgs, len(args))
+		}
+		return nil
+	},
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          cmdGrantAuthz,
+}
+
+var voteCmd = &cobra.Command{
+	Use:   "vote <chain name> <key name> <proposal number> <vote option (yes/no/veto/abstain)>",
+	Short: "generate a vote tx and push it",
+	Args:  cobra.ExactArgs(4),
+	RunE:  cmdVote,
+}
+
+var withdrawCmd = &cobra.Command{
+	Use:   "withdraw <chain name> <key name>",
+	Short: "generate a withdraw-all-rewards tx and push it",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdWithdraw,
+}
+
+var signCmd = &cobra.Command{
+	Use:   "sign <chain name> <key name>",
+	Short: "sign a tx",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdSign,
+}
+
+var listCmd = &cobra.Command{
+	Use:   "list <chain name> <key name>",
+	Short: "list items in a directory",
+	Args:  cobra.MaximumNArgs(2),
+	RunE:  cmdList,
+}
+
+var broadcastCmd = &cobra.Command{
+	Use:   "broadcast <chain name> <key name>",
+	Short: "broadcast a tx",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdBroadcast,
+}
+
+var deleteCmd = &cobra.Command{
+	Use:   "delete <chain name> <key name>",
+	Short: "delete a tx",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdDelete,
+}
+
+var rawCmd = &cobra.Command{
+	Use:   "raw <cmd>",
+	Short: "raw operations on the s3 bucket",
+}
+
+var rawBech32Cmd = &cobra.Command{
+	Use:   "bech32 <bech32 string> <new prefix>",
+	Short: "convert a bech32 string to a different prefix",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawBech32,
+}
+
+var rawCatCmd = &cobra.Command{
+	Use:   "cat <chain name> <key name>",
+	Short: "dump the contents of all files in a directory",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawCat,
+}
+
+var rawUpCmd = &cobra.Command{
+	Use:   "up <source filepath> <destination filepath>",
+	Short: "upload a local file to a path in the s3 bucket",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawUp,
+}
+
+var rawDownCmd = &cobra.Command{
+	Use:   "down <source filepath> <destination filepath>",
+	Short: "download a file or directory from the s3 bucket",
+	Long:  "if the path ends in a '/' it will attempt to download all files in that directory",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawDown,
+}
+
+var rawMkdirCmd = &cobra.Command{
+	Use:   "mkdir <directory path>",
+	Short: "create a directory in the s3 bucket - must end with a '/'",
+	Long:  "if the path ends in a '/' it will attempt to download all files in that directory",
+	Args:  cobra.ExactArgs(1),
+	RunE:  cmdRawMkdir,
+}
+
+var rawDeleteCmd = &cobra.Command{
+	Use:   "delete <filepath>",
+	Short: "delete a file from the s3 bucket",
+	Args:  cobra.ExactArgs(1),
+	RunE:  cmdRawDelete,
+}
+
+var (
+	flagTx          string
+	flagSequence    int
+	flagAccount     int
+	flagNode        string
+	flagFrom        string
+	flagAll         bool
+	flagForce       bool
+	flagAdditional  bool
+	flagDescription string
+	flagDenom       string
+	flagTxIndex     int
+)
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	// Main commands
+	rootCmd.AddCommand(txCmd)
+	rootCmd.AddCommand(signCmd)
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(broadcastCmd)
+	rootCmd.AddCommand(rawCmd)
+	rootCmd.AddCommand(deleteCmd)
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.mtt.yaml)")
+	// Raw commands
+	rawCmd.AddCommand(rawBech32Cmd)
+	rawCmd.AddCommand(rawCatCmd)
+	rawCmd.AddCommand(rawUpCmd)
+	rawCmd.AddCommand(rawDownCmd)
+	rawCmd.AddCommand(rawMkdirCmd)
+	rawCmd.AddCommand(rawDeleteCmd)
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Tx subcommands
+	txCmd.AddCommand(pushCmd)
+	txCmd.AddCommand(voteCmd)
+	txCmd.AddCommand(withdrawCmd)
+	txCmd.AddCommand(authzCmd)
+
+	// Authz subcommands
+	authzCmd.AddCommand(authzGrantCmd)
+
+	// Add flags to commands
+	addTxCmdCommonFlags(pushCmd)
+
+	addTxCmdCommonFlags(voteCmd)
+	addDenomFlags(voteCmd)
+
+	addTxCmdCommonFlags(withdrawCmd)
+	addDenomFlags(withdrawCmd)
+
+	addTxCmdCommonFlags(authzGrantCmd)
+	addDenomFlags(authzGrantCmd)
+
+	addSignCmdFlags(signCmd)
+
+	addListCmdFlags(listCmd)
+
+	addBroadcastCmdFlags(broadcastCmd)
+
+	addDeleteCmdFlags(deleteCmd)
 }
-
-
