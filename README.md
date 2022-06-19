@@ -1,5 +1,5 @@
 # mtt
 
-*MTT* is a CLI tool for cosmos to make multisig trasnactions backed through GCP 
+*MTT* is a CLI tool for multisig transactions via Azure Blob Storage
 
-Code in productions
+Code in productions :)
